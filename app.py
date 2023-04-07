@@ -11,7 +11,7 @@ import json
 app = Flask(__name__)
 
 @app.route('/')
-def hello_world():
+def predict_sales():
     path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
     df = read_csv(path, header=0)
     # prepare expected column names
@@ -42,7 +42,7 @@ def hello_world():
     return json.dumps(forecast.to_dict(orient='records'))
 
 @app.route('/app')
-def hello_app():
+def mean_absolute_error():
     path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
     df = read_csv(path, header=0)
     # prepare expected column names
