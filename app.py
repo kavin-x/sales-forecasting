@@ -1,10 +1,12 @@
 from flask import Flask
+from flask import Flask,jsonify,request
 from prophet import Prophet
 from pandas import read_csv
 from matplotlib import pyplot
 from pandas import to_datetime
 from pandas import DataFrame
 from sklearn.metrics import mean_absolute_error
+import json
 
 app = Flask(__name__)
 
@@ -24,17 +26,21 @@ def hello_world():
     for i in range(1, 13):
         date = '1969-%02d' % i
         future.append([date])
+    print(type(future))
     future = DataFrame(future)
     future.columns = ['ds']
     future['ds']= to_datetime(future['ds'])
     # use the model to make a forecast
     forecast = model.predict(future)
+    d = forecast.to_dict(orient='records')
+    print(type(future))
+    print(d)
     # summarize the forecast
     print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
     # plot forecast
     model.plot(forecast)
     pyplot.show()
-    return 'Hello World!'
+    return json.dumps(d)
 
 @app.route('/app')
 def hello_app():
@@ -64,6 +70,7 @@ def hello_app():
     y_true = df['y'][-12:].values
     y_pred = forecast['yhat'].values
     mae = mean_absolute_error(y_true, y_pred)
+    print(y_pred,y_true)
     print('MAE: %.3f' % mae)
     # plot expected vs actual
     pyplot.plot(y_true, label='Actual')
