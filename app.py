@@ -33,14 +33,13 @@ def hello_world():
     # use the model to make a forecast
     forecast = model.predict(future)
     d = forecast.to_dict(orient='records')
-    print(type(future))
-    print(d)
     # summarize the forecast
     print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
     # plot forecast
     model.plot(forecast)
     pyplot.show()
-    return json.dumps(d)
+    forecast['ds'] = forecast['ds'].astype(str)
+    return json.dumps(forecast.to_dict(orient='records'))
 
 @app.route('/app')
 def hello_app():
@@ -77,7 +76,7 @@ def hello_app():
     pyplot.plot(y_pred, label='Predicted')
     pyplot.legend()
     pyplot.show()
-    return 'Hello app!'
+    return json.dumps(mae)
 
 if __name__ == '__main__':
     app.run()
