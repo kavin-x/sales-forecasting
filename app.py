@@ -1,19 +1,32 @@
-from flask import Flask
-from flask import Flask,jsonify,request
+from flask import Flask, make_response, request
+from io import StringIO
+import csv
 from prophet import Prophet
-from pandas import read_csv
+from pandas import read_csv,date_range
 from matplotlib import pyplot
 from pandas import to_datetime
 from pandas import DataFrame
-from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import json
-
+from flask_cors import CORS
+from flask import request
+import requests
+import datetime
 app = Flask(__name__)
 
-@app.route('/')
+CORS(app)# This will enable CORS for all routes
+
+@app.route('/',methods=['GET', 'POST'])
 def predict_sales():
-    path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
-    df = read_csv(path, header=0)
+    f = request.files['file']
+    numdays=100
+    base = datetime.datetime.today()
+    # req = requests.get('https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv')
+    # url_content=req.content
+    # csv_file=open("downloaded.csv","wb")
+    # csv_file.write(url_content)
+    # csv_file.close()
+    df = read_csv(f.stream)
     # prepare expected column names
     df.columns = ['ds', 'y']
     df['ds']= to_datetime(df['ds'])
@@ -22,11 +35,20 @@ def predict_sales():
     # fit the model
     model.fit(df)
     # define the period for which we want a prediction
+    start_date = datetime.date(2022,1,1)
+    end_date = datetime.date(2023,1,1)
+
+    date_r = date_range(start_date, end_date)
+    date_r = date_r[date_range.day==1]
+    d= list()
+    for i in date_r:
+        future.append(i)
     future = list()
     for i in range(1, 13):
         date = '1969-%02d' % i
         future.append([date])
-    print(type(future))
+    print(d)
+    print(future)
     future = DataFrame(future)
     future.columns = ['ds']
     future['ds']= to_datetime(future['ds'])
@@ -68,8 +90,7 @@ def mean_absolute_error():
     # calculate MAE between expected and predicted values for december
     y_true = df['y'][-12:].values
     y_pred = forecast['yhat'].values
-    mae = mean_absolute_error(y_true, y_pred)
-    print(y_pred,y_true)
+    mae = mean_squared_error(y_true, y_pred)
     print('MAE: %.3f' % mae)
     # plot expected vs actual
     pyplot.plot(y_true, label='Actual')
