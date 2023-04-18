@@ -11,22 +11,35 @@ import json
 from flask_cors import CORS
 from flask import request
 import requests
-import datetime
+import pandas as pd
+from datetime import datetime, timedelta
 app = Flask(__name__)
 
 CORS(app)# This will enable CORS for all routes
 
 @app.route('/',methods=['GET', 'POST'])
 def predict_sales():
-    f = request.files['file']
-    numdays=100
-    base = datetime.datetime.today()
+    year,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
+    start_date = datetime(year, month, date)
+    period = request.files['period']
+    end_date = datetime(2024+period, 1, 10)
+    
+    # Getting List of   Months using pandas
+    month_list = pd.period_range(start=start_date, end=end_date, freq='M')
+    month_list = [month.strftime("%Y-%m") for month in month_list]
+    # define the period for which we want a prediction
+    future = list()
+    for i in month_list:
+        future.append([i])
+    print(future)
+    csv_file = request.files['file']
     # req = requests.get('https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv')
     # url_content=req.content
     # csv_file=open("downloaded.csv","wb")
     # csv_file.write(url_content)
-    # csv_file.close()
-    df = read_csv(f.stream)
+
+    path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
+    df = read_csv(csv_file.stream)
     # prepare expected column names
     df.columns = ['ds', 'y']
     df['ds']= to_datetime(df['ds'])
@@ -34,20 +47,7 @@ def predict_sales():
     model = Prophet()
     # fit the model
     model.fit(df)
-    # define the period for which we want a prediction
-    start_date = datetime.date(2022,1,1)
-    end_date = datetime.date(2023,1,1)
 
-    date_r = date_range(start_date, end_date)
-    date_r = date_r[date_range.day==1]
-    d= list()
-    for i in date_r:
-        future.append(i)
-    future = list()
-    for i in range(1, 13):
-        date = '1969-%02d' % i
-        future.append([date])
-    print(d)
     print(future)
     future = DataFrame(future)
     future.columns = ['ds']
