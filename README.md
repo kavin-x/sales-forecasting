@@ -1,7 +1,7 @@
 # sales-forecasting
 Stesp to run the app:
 
-$ python3 -m venv venv
+$ python3 -m venv venv<br>
 $ source venv/bin/activate
 $ pip install flask
 $ pip install prophet
