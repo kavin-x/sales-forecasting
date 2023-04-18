@@ -19,18 +19,18 @@ CORS(app)# This will enable CORS for all routes
 
 @app.route('/',methods=['GET', 'POST'])
 def predict_sales():
-
     currentYear,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
     start_date = datetime(currentYear, month, date)
     period = request.files['period']
+    number = request.files['number']
     # Getting List of weeks using pandas
     if period=="week":
-        end_date = datetime(currentYear+2, 1, 10)
+        end_date = datetime(currentYear+number, 12, 1)
         month_list = pd.period_range(start=start_date, end=end_date, freq='w')
         month_list = [month.strftime("%Y-%m-%d") for month in month_list]
     # Getting List of Months using pandas
     if period=="month":
-        end_date = datetime(currentYear+2, 1, 10)
+        end_date = datetime(currentYear+number, 12, 1)
         month_list = pd.period_range(start=start_date, end=end_date, freq='m')
         month_list = [month.strftime("%Y-%m-%d") for month in month_list]
     
