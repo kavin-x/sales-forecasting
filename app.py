@@ -19,14 +19,21 @@ CORS(app)# This will enable CORS for all routes
 
 @app.route('/',methods=['GET', 'POST'])
 def predict_sales():
-    year,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
-    start_date = datetime(year, month, date)
+
+    currentYear,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
+    start_date = datetime(currentYear, month, date)
     period = request.files['period']
-    end_date = datetime(2024+period, 1, 10)
+    # Getting List of weeks using pandas
+    if period=="week":
+        end_date = datetime(currentYear+2, 1, 10)
+        month_list = pd.period_range(start=start_date, end=end_date, freq='w')
+        month_list = [month.strftime("%Y-%m-%d") for month in month_list]
+    # Getting List of Months using pandas
+    if period=="month":
+        end_date = datetime(currentYear+2, 1, 10)
+        month_list = pd.period_range(start=start_date, end=end_date, freq='m')
+        month_list = [month.strftime("%Y-%m-%d") for month in month_list]
     
-    # Getting List of   Months using pandas
-    month_list = pd.period_range(start=start_date, end=end_date, freq='M')
-    month_list = [month.strftime("%Y-%m") for month in month_list]
     # define the period for which we want a prediction
     future = list()
     for i in month_list:
@@ -62,6 +69,7 @@ def predict_sales():
     pyplot.show()
     forecast['ds'] = forecast['ds'].astype(str)
     return json.dumps(forecast.to_dict(orient='records'))
+    
 
 @app.route('/app')
 def mean_absolute_error():
