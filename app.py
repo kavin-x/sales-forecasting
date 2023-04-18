@@ -1,8 +1,7 @@
-from flask import Flask, make_response, request
+from flask import Flask, request
 from io import StringIO
-import csv
 from prophet import Prophet
-from pandas import read_csv,date_range
+from pandas import read_csv
 from matplotlib import pyplot
 from pandas import to_datetime
 from pandas import DataFrame
@@ -10,65 +9,86 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 import json
 from flask_cors import CORS
 from flask import request
-import requests
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
+import re
 app = Flask(__name__)
 
 CORS(app)# This will enable CORS for all routes
 
 @app.route('/',methods=['GET', 'POST'])
 def predict_sales():
-    currentYear,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
-    start_date = datetime(currentYear, month, date)
-    period = request.files['period']
-    number = request.files['number']
-    # Getting List of weeks using pandas
-    if period=="week":
-        end_date = datetime(currentYear+number, 12, 1)
-        month_list = pd.period_range(start=start_date, end=end_date, freq='w')
-        month_list = [month.strftime("%Y-%m-%d") for month in month_list]
-    # Getting List of Months using pandas
-    if period=="month":
-        end_date = datetime(currentYear+number, 12, 1)
+    if request.method == "POST":
+        currentYear,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
+        
+            # period = str(request.form['period'])
+            # print(type(period))
+            # number = request.form['number']
+            # print(number,period)
+            # month_list=[]
+
+            # # Getting List of weeks using pandas
+        
+        # number = request.files['number']
+       
+
+            # # Getting List of Months using pandas
+            # if period == "Month":
+            #     end_date = datetime(currentYear+1, 12, 1)
+            #     month_list = pd.period_range(start=start_date, end=end_date, freq='m')
+            #     month_list = [month.strftime("%Y-%m-%d") for month in month_list]
+        
+        csv_file = request.files['file']
+        number = str(request.form["number"])
+        duration = [float(s) for s in re.findall(r'-?\d+\.?\d*', number)]
+        print(duration)
+        # period = request.files['period']
+        # if period == "Week":
+        #     print(period)
+            # # req = requests.get('https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv')
+            # # url_content=req.content
+            # # csv_file=open("downloaded.csv","wb")
+            # # csv_file.write(url_content)
+            # print(csv_file)
+        df = read_csv(csv_file.stream)
+        
+        # prepare expected column names
+        df.columns = ['ds', 'y']
+        df['ds']= to_datetime(df['ds'])
+        # define the model
+        model = Prophet()
+        last_date = df['ds'].iloc[-1]
+        currentYear, month, date = int(last_date.strftime("%Y")),int(last_date.strftime("%m")),int(last_date.strftime("%d"))
+        start_date = datetime(currentYear, month, date)
+        end_date = datetime(currentYear+int(duration[0]), 12, 1)
         month_list = pd.period_range(start=start_date, end=end_date, freq='m')
-        month_list = [month.strftime("%Y-%m-%d") for month in month_list]
-    
-    # define the period for which we want a prediction
-    future = list()
-    for i in month_list:
-        future.append([i])
-    print(future)
-    csv_file = request.files['file']
-    # req = requests.get('https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv')
-    # url_content=req.content
-    # csv_file=open("downloaded.csv","wb")
-    # csv_file.write(url_content)
+        month_list = [month.strftime("%Y-%m-%d") for month in month_list]       
+            # define the period for which we want a prediction
+        future = list()
+        for i in month_list:
+                future.append([i])
+        print(future)
+        # fit the model
+        model.fit(df)
+        # future=list()
+        # for i in range(1, 13):
+        #     date = '1969-%02d' % i
+        #     future.append([date])
+        # print(future)
+        future = DataFrame(future)
+        future.columns = ['ds']
+        future['ds']= to_datetime(future['ds'])
+        # use the model to make a forecast
+        forecast = model.predict(future)
+        # summarize the forecast
+        print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
+        # plot forecast
+        model.plot(forecast)
+        pyplot.show()
+        forecast['ds'] = forecast['ds'].astype(str)
+        return json.dumps(forecast.to_dict(orient='records'))
+ 
 
-    path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
-    df = read_csv(csv_file.stream)
-    # prepare expected column names
-    df.columns = ['ds', 'y']
-    df['ds']= to_datetime(df['ds'])
-    # define the model
-    model = Prophet()
-    # fit the model
-    model.fit(df)
-
-    print(future)
-    future = DataFrame(future)
-    future.columns = ['ds']
-    future['ds']= to_datetime(future['ds'])
-    # use the model to make a forecast
-    forecast = model.predict(future)
-    d = forecast.to_dict(orient='records')
-    # summarize the forecast
-    print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
-    # plot forecast
-    model.plot(forecast)
-    pyplot.show()
-    forecast['ds'] = forecast['ds'].astype(str)
-    return json.dumps(forecast.to_dict(orient='records'))
     
 
 @app.route('/app')
