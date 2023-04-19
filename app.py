@@ -10,7 +10,7 @@ import json
 from flask_cors import CORS
 from flask import request
 import pandas as pd
-from datetime import datetime
+from datetime import datetime,timedelta
 import re
 import matplotlib.pyplot as plt
 app = Flask(__name__)
@@ -21,7 +21,6 @@ CORS(app)# This will enable CORS for all routes
 def predict_sales():
     if request.method == "POST":
         currentYear,month,date=int(datetime.today().strftime('%Y')),int(datetime.today().strftime('%m')),int(datetime.today().strftime('%d'))
-        
             # period = str(request.form['period'])
             # print(type(period))
             # number = request.form['number']
@@ -38,6 +37,7 @@ def predict_sales():
         csv_file = request.files['file']
         number = str(request.form["number"])
         duration = [float(s) for s in re.findall(r'-?\d+\.?\d*', number)]
+
         print(duration)
         # period = request.files['period']
         # if period == "Week":
@@ -48,7 +48,6 @@ def predict_sales():
             # # csv_file.write(url_content)
             # print(csv_file)
         df = read_csv(csv_file.stream)
-        
         # prepare expected column names
         df.columns = ['ds', 'y']
         df['ds']= to_datetime(df['ds'])
@@ -58,17 +57,22 @@ def predict_sales():
         currentYear, month, date = int(last_date.strftime("%Y")),int(last_date.strftime("%m")),int(last_date.strftime("%d"))
         start_date = datetime(currentYear, month, date)
         if period == '"Month"':
-            end_date = datetime(currentYear+int(duration[0]), 12, 1)
-            month_list = pd.period_range(start=start_date, end=end_date, freq='m')
+            u = datetime.strptime(f'{currentYear}-{month}-{date}','%Y-%m-%d')
+            d = timedelta(weeks=4*int(duration[0]))
+            month_list = pd.period_range(start=start_date, end=u+d, freq='d')
             month_list = [month.strftime("%Y-%m-%d") for month in month_list]
         if period =='"Week"':
-            end_date = datetime(currentYear+int(duration[0]), 12, 1)
-            month_list = pd.period_range(start=start_date, end=end_date, freq='w')
+            print(period)
+            u = datetime.strptime(f'{currentYear}-{month}-{date}','%Y-%m-%d')
+            d = timedelta(days=7*int(duration[0]))
+            end_date = datetime(currentYear, month, date)
+            month_list = pd.period_range(start=start_date, end=u+d, freq='d')
             month_list = [month.strftime("%Y-%m-%d") for month in month_list]   
             # define the period for which we want a prediction
         if period =='"Year"':
-            end_date = datetime(currentYear+int(duration[0]), 12, 1)
-            month_list = pd.period_range(start=start_date, end=end_date, freq='w')
+            print(period)
+            end_date = datetime(currentYear+int(duration[0]), month, date)
+            month_list = pd.period_range(start=start_date, end=end_date, freq='y')
             month_list = [month.strftime("%Y-%m-%d") for month in month_list]
         future = list()
         for i in month_list:
