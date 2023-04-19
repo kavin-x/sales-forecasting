@@ -12,6 +12,7 @@ from flask import request
 import pandas as pd
 from datetime import datetime
 import re
+import matplotlib.pyplot as plt
 app = Flask(__name__)
 
 CORS(app)# This will enable CORS for all routes
@@ -30,13 +31,9 @@ def predict_sales():
             # # Getting List of weeks using pandas
         
         # number = request.files['number']
-       
-
+        period = str(request.form["period"])
+        print(period)
             # # Getting List of Months using pandas
-            # if period == "Month":
-            #     end_date = datetime(currentYear+1, 12, 1)
-            #     month_list = pd.period_range(start=start_date, end=end_date, freq='m')
-            #     month_list = [month.strftime("%Y-%m-%d") for month in month_list]
         
         csv_file = request.files['file']
         number = str(request.form["number"])
@@ -60,10 +57,19 @@ def predict_sales():
         last_date = df['ds'].iloc[-1]
         currentYear, month, date = int(last_date.strftime("%Y")),int(last_date.strftime("%m")),int(last_date.strftime("%d"))
         start_date = datetime(currentYear, month, date)
-        end_date = datetime(currentYear+int(duration[0]), 12, 1)
-        month_list = pd.period_range(start=start_date, end=end_date, freq='m')
-        month_list = [month.strftime("%Y-%m-%d") for month in month_list]       
+        if period == '"Month"':
+            end_date = datetime(currentYear+int(duration[0]), 12, 1)
+            month_list = pd.period_range(start=start_date, end=end_date, freq='m')
+            month_list = [month.strftime("%Y-%m-%d") for month in month_list]
+        if period =='"Week"':
+            end_date = datetime(currentYear+int(duration[0]), 12, 1)
+            month_list = pd.period_range(start=start_date, end=end_date, freq='w')
+            month_list = [month.strftime("%Y-%m-%d") for month in month_list]   
             # define the period for which we want a prediction
+        if period =='"Year"':
+            end_date = datetime(currentYear+int(duration[0]), 12, 1)
+            month_list = pd.period_range(start=start_date, end=end_date, freq='w')
+            month_list = [month.strftime("%Y-%m-%d") for month in month_list]
         future = list()
         for i in month_list:
                 future.append([i])
@@ -80,17 +86,15 @@ def predict_sales():
         future['ds']= to_datetime(future['ds'])
         # use the model to make a forecast
         forecast = model.predict(future)
+        print(forecast['ds'])
         # summarize the forecast
-        print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].head())
+        print(forecast[['ds', 'yhat', 'yhat_lower', 'yhat_upper']])
         # plot forecast
-        model.plot(forecast)
+        plt.plot(forecast['ds'],forecast['yhat'])
         pyplot.show()
         forecast['ds'] = forecast['ds'].astype(str)
         return json.dumps(forecast.to_dict(orient='records'))
  
-
-    
-
 @app.route('/app')
 def mean_absolute_error():
     path = 'https://raw.githubusercontent.com/jbrownlee/Datasets/master/monthly-car-sales.csv'
